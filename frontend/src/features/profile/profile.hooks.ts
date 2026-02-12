@@ -3,6 +3,24 @@ import toast from "react-hot-toast";
 import { queryClient } from "../../app/query-client";
 import { profileApi } from "./profile.api";
 
+// Helper to extract error message from unknown error type
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "response" in error &&
+    error.response &&
+    typeof error.response === "object" &&
+    "data" in error.response &&
+    error.response.data &&
+    typeof error.response.data === "object" &&
+    "message" in error.response.data
+  ) {
+    return String(error.response.data.message);
+  }
+  return fallback;
+};
+
 export const useMyProfile = () =>
   useQuery({
     queryKey: ["profile", "me"],
@@ -17,8 +35,8 @@ export const useUpdateMyProfile = () =>
       await queryClient.invalidateQueries({ queryKey: ["profile", "me"] });
       await queryClient.invalidateQueries({ queryKey: ["profiles", "admin"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to update profile");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Failed to update profile"));
     },
   });
 
@@ -38,7 +56,7 @@ export const useToggleUserStatus = () =>
       );
       await queryClient.invalidateQueries({ queryKey: ["profiles", "admin"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Failed to update status");
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, "Failed to update status"));
     },
   });

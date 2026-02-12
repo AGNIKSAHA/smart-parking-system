@@ -22,7 +22,6 @@ const schema = new Schema(
 );
 
 schema.post("save", function (doc) {
-  // Import dynamically to avoid circular dependency if any
   import("../../modules/realtime/socket.js").then((m) => {
     m.emitNotification(doc.userId.toString());
   });

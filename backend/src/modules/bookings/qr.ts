@@ -29,7 +29,7 @@ export const createQr = async (
   return { token, imageDataUrl };
 };
 
-export const verifyQr = (token: string): any => {
+export const verifyQr = (token: string): BookingQrPayload | UserQrPayload => {
   const parts = token.split(".");
   if (parts.length !== 2) {
     throw new Error("Malformed qr token");

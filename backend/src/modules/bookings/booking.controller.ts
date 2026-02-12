@@ -42,7 +42,7 @@ export const myHistory = async (req: Request, res: Response): Promise<void> => {
   const limit = Number(req.query.limit ?? 10);
   const skip = (page - 1) * limit;
 
-  const filter: any = {};
+  const filter: Record<string, unknown> = {};
   if (req.user?.role !== "admin") {
     filter.userId = req.user?.id;
   }

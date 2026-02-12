@@ -21,8 +21,21 @@ export const SecurityScanPage = () => {
         );
         reset({ token: "", action: values.action });
       },
-      onError: (err: any) => {
-        const message = err?.response?.data?.message || "Scan failed";
+      onError: (err: unknown) => {
+        let message = "Scan failed";
+        if (
+          err &&
+          typeof err === "object" &&
+          "response" in err &&
+          err.response &&
+          typeof err.response === "object" &&
+          "data" in err.response &&
+          err.response.data &&
+          typeof err.response.data === "object" &&
+          "message" in err.response.data
+        ) {
+          message = String(err.response.data.message);
+        }
         toast.error(message);
       },
     });

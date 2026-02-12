@@ -136,10 +136,15 @@ export const mySubscriptions = async (
     200,
     "Subscriptions",
     items.map((item) => {
-      const v = item.vehicleId as any;
+      const vehicleId = item.vehicleId;
+      const vehicleNumber =
+        typeof vehicleId === "object" && vehicleId && "plateNumber" in vehicleId
+          ? (vehicleId.plateNumber as string)
+          : "-";
+
       return {
         id: item._id.toString(),
-        vehicleNumber: v?.plateNumber ?? "-",
+        vehicleNumber,
         planName: item.planName,
         monthlyAmount: item.monthlyAmount,
         startsAt: item.startsAt,

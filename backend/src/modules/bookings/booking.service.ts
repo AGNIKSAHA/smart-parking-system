@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import Stripe from "stripe";
 import { BookingModel } from "../../db/models/booking.model.js";
 import { LedgerModel } from "../../db/models/ledger.model.js";
 import { SlotModel } from "../../db/models/slot.model.js";
@@ -44,7 +45,6 @@ export const bookingService = {
         { new: true },
       ).exec();
     } else {
-      // Find any available slot for vehicle type
       reservedSlot = await SlotModel.findOneAndUpdate(
         {
           vehicleType: vehicle.vehicleType,
@@ -103,13 +103,21 @@ export const bookingService = {
     };
   },
 
-  async fulfillPayment(paymentIntent: any) {
+  async fulfillPayment(paymentIntent: Stripe.PaymentIntent) {
     const { bookingId, slotId, userId, vehicleId, startsAt, durationMinutes } =
       paymentIntent.metadata;
 
-    if (!bookingId) return null;
+    if (
+      !bookingId ||
+      !slotId ||
+      !userId ||
+      !vehicleId ||
+      !startsAt ||
+      !durationMinutes
+    ) {
+      throw new AppError("Missing required metadata in payment intent", 400);
+    }
 
-    // Check if already fulfilled
     let booking = await BookingModel.findById(bookingId).exec();
     if (booking) {
       if (booking.paymentStatus !== "paid") {
@@ -120,7 +128,6 @@ export const bookingService = {
       return booking;
     }
 
-    // Create the booking record now that payment has happened
     const startsAtDate = new Date(startsAt);
     const durationCount = parseInt(durationMinutes);
     const endsAt = new Date(startsAtDate.getTime() + durationCount * 60_000);
@@ -226,10 +233,12 @@ export const bookingService = {
     const payload = await verifyQr(input.token);
 
     // Handle Subscription QR (No bookingId in payload)
-    if (!payload.bookingId && payload.userId) {
+    if ("email" in payload) {
+      // This is a UserQrPayload (subscription)
       return await this.handleSubscriptionScan(payload.userId, input.action);
     }
 
+    // This is a BookingQrPayload
     const booking = await BookingModel.findById(payload.bookingId).exec();
 
     if (!booking) {

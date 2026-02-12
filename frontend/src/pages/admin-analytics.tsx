@@ -28,7 +28,6 @@ export const AdminAnalyticsPage = () => {
     },
   });
 
-  // Prepare data for the graph (fill in missing hours if any)
   const graphData = Array.from({ length: 24 }, (_, i) => {
     const found = analytics.data?.peakHours.find((p) => p.hour === i);
     return {
