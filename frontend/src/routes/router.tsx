@@ -1,64 +1,245 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Loader } from "../components/loader";
 import { Layout } from "../components/layout";
 import { useSessionBootstrap } from "../features/auth/auth.hooks";
-import { AdminAnalyticsPage } from "../pages/admin-analytics";
-import { BookingsPage } from "../pages/bookings";
-import { DashboardPage } from "../pages/dashboard";
-import { AdminProfilesPage } from "../pages/admin-profiles";
-import { ForgotPasswordPage } from "../pages/forgot-password";
-import { LoginPage } from "../pages/login";
-import { NotFoundPage } from "../pages/not-found";
-import { NotificationsPage } from "../pages/notifications";
-import { ProfilePage } from "../pages/profile";
-import { RegisterPage } from "../pages/register";
-import { ResetPasswordPage } from "../pages/reset-password";
-import { SecurityScanPage } from "../pages/security-scan";
-import { SlotsPage } from "../pages/slots";
-import { SubscriptionsPage } from "../pages/subscriptions";
-import { VerifyEmailPage } from "../pages/verify-email";
-import { VehiclesPage } from "../pages/vehicles";
 import { RequireAuth, RequireRole } from "./guards";
+
+// Lazy load all page components for better code splitting
+const AdminAnalyticsPage = lazy(() =>
+  import("../pages/admin-analytics").then((m) => ({
+    default: m.AdminAnalyticsPage,
+  })),
+);
+const BookingsPage = lazy(() =>
+  import("../pages/bookings").then((m) => ({ default: m.BookingsPage })),
+);
+const DashboardPage = lazy(() =>
+  import("../pages/dashboard").then((m) => ({ default: m.DashboardPage })),
+);
+const AdminProfilesPage = lazy(() =>
+  import("../pages/admin-profiles").then((m) => ({
+    default: m.AdminProfilesPage,
+  })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import("../pages/forgot-password").then((m) => ({
+    default: m.ForgotPasswordPage,
+  })),
+);
+const LoginPage = lazy(() =>
+  import("../pages/login").then((m) => ({ default: m.LoginPage })),
+);
+const NotFoundPage = lazy(() =>
+  import("../pages/not-found").then((m) => ({ default: m.NotFoundPage })),
+);
+const NotificationsPage = lazy(() =>
+  import("../pages/notifications").then((m) => ({
+    default: m.NotificationsPage,
+  })),
+);
+const ProfilePage = lazy(() =>
+  import("../pages/profile").then((m) => ({ default: m.ProfilePage })),
+);
+const RegisterPage = lazy(() =>
+  import("../pages/register").then((m) => ({ default: m.RegisterPage })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("../pages/reset-password").then((m) => ({
+    default: m.ResetPasswordPage,
+  })),
+);
+const SecurityScanPage = lazy(() =>
+  import("../pages/security-scan").then((m) => ({
+    default: m.SecurityScanPage,
+  })),
+);
+const SlotsPage = lazy(() =>
+  import("../pages/slots").then((m) => ({ default: m.SlotsPage })),
+);
+const SubscriptionsPage = lazy(() =>
+  import("../pages/subscriptions").then((m) => ({
+    default: m.SubscriptionsPage,
+  })),
+);
+const VerifyEmailPage = lazy(() =>
+  import("../pages/verify-email").then((m) => ({ default: m.VerifyEmailPage })),
+);
+const VehiclesPage = lazy(() =>
+  import("../pages/vehicles").then((m) => ({ default: m.VehiclesPage })),
+);
+
+// Loading fallback component
+const PageLoader = () => <Loader label="Loading..." />;
+
+// Wrapper component for Suspense
+const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<PageLoader />}>{children}</Suspense>
+);
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Layout />,
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: "login", element: <LoginPage /> },
-      { path: "register", element: <RegisterPage /> },
-      { path: "forgot-password", element: <ForgotPasswordPage /> },
-      { path: "reset-password", element: <ResetPasswordPage /> },
-      { path: "verify-email", element: <VerifyEmailPage /> },
+      {
+        index: true,
+        element: (
+          <SuspenseWrapper>
+            <DashboardPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "login",
+        element: (
+          <SuspenseWrapper>
+            <LoginPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "register",
+        element: (
+          <SuspenseWrapper>
+            <RegisterPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "forgot-password",
+        element: (
+          <SuspenseWrapper>
+            <ForgotPasswordPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "reset-password",
+        element: (
+          <SuspenseWrapper>
+            <ResetPasswordPage />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "verify-email",
+        element: (
+          <SuspenseWrapper>
+            <VerifyEmailPage />
+          </SuspenseWrapper>
+        ),
+      },
       {
         element: <RequireAuth />,
         children: [
-          { path: "dashboard", element: <DashboardPage /> },
-          { path: "bookings", element: <BookingsPage /> },
-          { path: "profile", element: <ProfilePage /> },
-          { path: "notifications", element: <NotificationsPage /> },
+          {
+            path: "dashboard",
+            element: (
+              <SuspenseWrapper>
+                <DashboardPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "bookings",
+            element: (
+              <SuspenseWrapper>
+                <BookingsPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "profile",
+            element: (
+              <SuspenseWrapper>
+                <ProfilePage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "notifications",
+            element: (
+              <SuspenseWrapper>
+                <NotificationsPage />
+              </SuspenseWrapper>
+            ),
+          },
           {
             element: <RequireRole roles={["user", "admin"]} />,
             children: [
-              { path: "slots", element: <SlotsPage /> },
-              { path: "vehicles", element: <VehiclesPage /> },
-              { path: "subscriptions", element: <SubscriptionsPage /> }
-            ]
+              {
+                path: "slots",
+                element: (
+                  <SuspenseWrapper>
+                    <SlotsPage />
+                  </SuspenseWrapper>
+                ),
+              },
+              {
+                path: "vehicles",
+                element: (
+                  <SuspenseWrapper>
+                    <VehiclesPage />
+                  </SuspenseWrapper>
+                ),
+              },
+              {
+                path: "subscriptions",
+                element: (
+                  <SuspenseWrapper>
+                    <SubscriptionsPage />
+                  </SuspenseWrapper>
+                ),
+              },
+            ],
           },
-          { element: <RequireRole roles={["security", "admin"]} />, children: [{ path: "security/scan", element: <SecurityScanPage /> }] },
+          {
+            element: <RequireRole roles={["security", "admin"]} />,
+            children: [
+              {
+                path: "security/scan",
+                element: (
+                  <SuspenseWrapper>
+                    <SecurityScanPage />
+                  </SuspenseWrapper>
+                ),
+              },
+            ],
+          },
           {
             element: <RequireRole roles={["admin"]} />,
             children: [
-              { path: "admin/analytics", element: <AdminAnalyticsPage /> },
-              { path: "admin/profiles", element: <AdminProfilesPage /> }
-            ]
-          }
-        ]
+              {
+                path: "admin/analytics",
+                element: (
+                  <SuspenseWrapper>
+                    <AdminAnalyticsPage />
+                  </SuspenseWrapper>
+                ),
+              },
+              {
+                path: "admin/profiles",
+                element: (
+                  <SuspenseWrapper>
+                    <AdminProfilesPage />
+                  </SuspenseWrapper>
+                ),
+              },
+            ],
+          },
+        ],
       },
-      { path: "*", element: <NotFoundPage /> }
-    ]
-  }
+      {
+        path: "*",
+        element: (
+          <SuspenseWrapper>
+            <NotFoundPage />
+          </SuspenseWrapper>
+        ),
+      },
+    ],
+  },
 ]);
 
 export const AppRouter = () => {
