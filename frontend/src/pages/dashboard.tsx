@@ -47,7 +47,6 @@ export const DashboardPage = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Profile Details Section - All Roles */}
         <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-900">
@@ -96,7 +95,6 @@ export const DashboardPage = () => {
           </div>
         </section>
 
-        {/* Vehicles Section - Only for User Role */}
         {isUser && (
           <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
             <div className="mb-4 flex items-center justify-between">

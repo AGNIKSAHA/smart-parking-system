@@ -18,7 +18,6 @@ export const getMyProfile = async (
     throw new AppError("User not found", 404);
   }
 
-  // Generate QR if missing
   if (!user.qrImageDataUrl) {
     const { imageDataUrl } = await createQr({
       userId: user._id.toString(),

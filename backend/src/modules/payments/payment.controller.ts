@@ -33,7 +33,6 @@ export const handleStripeWebhook = async (req: Request, res: Response) => {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
       console.error(`Fulfillment Error: ${message}`);
-      // We still return 200 to Stripe because we received it, but log the error
     }
   }
 

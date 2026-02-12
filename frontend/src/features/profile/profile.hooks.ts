@@ -3,7 +3,6 @@ import toast from "react-hot-toast";
 import { queryClient } from "../../app/query-client";
 import { profileApi } from "./profile.api";
 
-// Helper to extract error message from unknown error type
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (
     error &&

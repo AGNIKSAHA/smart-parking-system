@@ -32,7 +32,6 @@ export const bookingService = {
 
     const bookingId = new Types.ObjectId();
 
-    // Reserve slot immediately to hold it while user pays
     let reservedSlot;
     if (input.slotId) {
       reservedSlot = await SlotModel.findOneAndUpdate(
@@ -60,13 +59,11 @@ export const bookingService = {
       throw new AppError("Slot unavailable", 409);
     }
 
-    // Update input.slotId with the found slot id
     input.slotId = reservedSlot._id.toString();
     const bookedHours = Math.ceil(input.durationMinutes / 60);
     const amount = bookedHours * reservedSlot.hourlyRate;
 
     if (amount < 50) {
-      // Revert reservation if amount is too low
       await SlotModel.findByIdAndUpdate(input.slotId, {
         status: "available",
         activeBookingId: null,
@@ -165,7 +162,6 @@ export const bookingService = {
       bookingId: booking._id,
     });
 
-    // Notify admins
     const adminAndSecurityUsers = await UserModel.find({
       role: { $in: ["admin", "security"] },
     })
@@ -208,7 +204,6 @@ export const bookingService = {
     if (paymentIntentId) {
       paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     } else {
-      // Fallback to search if no ID provided (might be slow due to Stripe's eventual consistency)
       const searchResponse = await stripe.paymentIntents.search({
         query: `metadata["bookingId"]:"${bookingId}"`,
       });
@@ -232,13 +227,10 @@ export const bookingService = {
   async scan(input: { token: string; action: "entry" | "exit" }) {
     const payload = await verifyQr(input.token);
 
-    // Handle Subscription QR (No bookingId in payload)
     if ("email" in payload) {
-      // This is a UserQrPayload (subscription)
       return await this.handleSubscriptionScan(payload.userId, input.action);
     }
 
-    // This is a BookingQrPayload
     const booking = await BookingModel.findById(payload.bookingId).exec();
 
     if (!booking) {
@@ -332,7 +324,6 @@ export const bookingService = {
       booking.overtimeMinutes = bill.overtimeMinutes;
       booking.amount += amountToCharge;
       if (amountToCharge > 0 && amountToCharge < 50) {
-        // Small amount waived
       }
       await booking.save();
 
@@ -411,11 +402,8 @@ export const bookingService = {
       emitSlot(slot._id.toString(), "available");
     }
 
-    // Process refund (50% deduction)
     if (booking.paymentStatus === "paid" && booking.stripePaymentIntentId) {
       try {
-        // Calculate refund amount (50% of total)
-        // Amount is stored in decimal (e.g. 100.00), Stripe expects integers (cents)
         const amountToRefund = Math.floor(booking.amount * 100 * 0.5);
 
         if (amountToRefund > 0) {
@@ -427,7 +415,6 @@ export const bookingService = {
         }
       } catch (error) {
         console.error("Refund failed for booking cancellation:", error);
-        // We continue with cancellation even if refund fails, but log it
       }
     }
 
@@ -458,7 +445,6 @@ export const bookingService = {
   },
 
   async handleSubscriptionScan(userId: string, action: "entry" | "exit") {
-    // Check for active subscription
     const subscription = await SubscriptionModel.findOne({
       userId,
       status: "active",
@@ -470,7 +456,6 @@ export const bookingService = {
     }
 
     if (action === "entry") {
-      // Find if user is already inside (prevent double entry)
       const existing = await BookingModel.findOne({
         userId,
         status: "checked_in",
@@ -484,7 +469,6 @@ export const bookingService = {
       let slot;
 
       if (subscription.slotId) {
-        // User has a dedicated slot
         slot = await SlotModel.findOneAndUpdate(
           { _id: subscription.slotId },
           {
@@ -495,14 +479,7 @@ export const bookingService = {
           },
           { new: true },
         ).exec();
-
-        // Note: Even if it was already 'reserved' or 'occupied' by them (erroneously?), we force it.
-        // But what if someone else took it?
-        // If it's a dedicated slot, we should ideally check if it's free or taken by someone else.
-        // But for simplicity, we assume if they have a sub, they own it.
-        // Only potential issue is if unauthorized parking happened.
       } else {
-        // Find pool slot
         slot = await SlotModel.findOneAndUpdate(
           { status: "available" },
           {
@@ -522,22 +499,21 @@ export const bookingService = {
         );
       }
 
-      // Create ephemeral booking
       const booking = await BookingModel.create({
         _id: bookingId,
         userId,
         slotId: slot._id,
         vehicleId: subscription.vehicleId,
         startsAt: new Date(),
-        endsAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h default for log
+        endsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         expectedDurationMinutes: 1440,
         status: "checked_in",
         checkInAt: new Date(),
         amount: 0,
-        paymentStatus: "paid", // Subscription covers it
+        paymentStatus: "paid",
         qrToken: "subscription-entry",
-        qrImageDataUrl: "subscription-entry", // Placeholder
-        expiryWarningSent: true, // Don't send expiry warnings for subs
+        qrImageDataUrl: "subscription-entry",
+        expiryWarningSent: true,
         expiryAlertSent: true,
       });
 
@@ -553,7 +529,6 @@ export const bookingService = {
 
       return { booking, payment: null };
     } else {
-      // Exit
       const booking = await BookingModel.findOne({
         userId,
         status: "checked_in",
@@ -569,7 +544,7 @@ export const bookingService = {
 
       booking.status = "checked_out";
       booking.checkOutAt = new Date();
-      booking.amount = 0; // Free for subscribers
+      booking.amount = 0;
       await booking.save();
 
       if (slot) {
@@ -579,7 +554,6 @@ export const bookingService = {
         emitSlot(slot._id.toString(), "available");
       }
 
-      // Log to ledger
       const durationMinutes = Math.ceil(
         (booking.checkOutAt!.getTime() - booking.checkInAt!.getTime()) / 60000,
       );

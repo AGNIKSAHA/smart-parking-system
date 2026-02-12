@@ -10,7 +10,6 @@ const run = async (): Promise<void> => {
   const threshold = new Date(now.getTime() + 15 * 60_000);
 
   try {
-    // 1. Warning: Bookings ending in 15 minutes
     const expiring = await BookingModel.find({
       status: { $in: ["reserved", "checked_in"] },
       expiryWarningSent: false,
@@ -30,7 +29,6 @@ const run = async (): Promise<void> => {
       await booking.save();
     }
 
-    // 2. Alert: Bookings that have expired while checked in (Overtime start)
     const justExpired = await BookingModel.find({
       status: "checked_in",
       expiryAlertSent: false,
@@ -51,7 +49,6 @@ const run = async (): Promise<void> => {
       await booking.save();
     }
 
-    // 3. System: Handle expired reservations (never checked in)
     const expiredReservations = await BookingModel.find({
       status: "reserved",
       endsAt: { $lte: now },
@@ -61,7 +58,6 @@ const run = async (): Promise<void> => {
       booking.status = "expired";
       await booking.save();
 
-      // Release the slot if this was the active booking
       await SlotModel.updateOne(
         { _id: booking.slotId, activeBookingId: booking._id },
         { $set: { status: "available", activeBookingId: null } },
@@ -89,10 +85,8 @@ export const startExpiryWorker = (): void => {
     return;
   }
 
-  // Initial run
   void run();
 
-  // Run every minute
   timer = setInterval(() => {
     void run();
   }, 60_000);

@@ -5,7 +5,6 @@ import { Layout } from "../components/layout";
 import { useSessionBootstrap } from "../features/auth/auth.hooks";
 import { RequireAuth, RequireRole } from "./guards";
 
-// Lazy load all page components for better code splitting
 const AdminAnalyticsPage = lazy(() =>
   import("../pages/admin-analytics").then((m) => ({
     default: m.AdminAnalyticsPage,
@@ -69,10 +68,8 @@ const VehiclesPage = lazy(() =>
   import("../pages/vehicles").then((m) => ({ default: m.VehiclesPage })),
 );
 
-// Loading fallback component
 const PageLoader = () => <Loader label="Loading..." />;
 
-// Wrapper component for Suspense
 const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
   <Suspense fallback={<PageLoader />}>{children}</Suspense>
 );

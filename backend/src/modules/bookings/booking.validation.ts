@@ -25,7 +25,6 @@ export const createBookingSchema = z.object({
         999,
       );
 
-      // Check if it's today AND not in the past (with 1min buffer for network/clock skew)
       return date >= new Date(Date.now() - 60000) && date <= endOfToday;
     },
     {

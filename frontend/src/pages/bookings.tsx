@@ -168,7 +168,6 @@ export const BookingsPage = () => {
         const doc = new jsPDF.default();
         doc.text("Parking Ledger", 14, 15);
 
-        // Download filtered list if searching, otherwise all
         const listToExport = filteredBookings;
 
         const tableData = listToExport.map((booking) => [

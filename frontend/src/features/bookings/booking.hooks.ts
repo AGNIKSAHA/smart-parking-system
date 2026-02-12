@@ -61,9 +61,7 @@ export const useConfirmPayment = () =>
       paymentIntentId?: string;
     }) => bookingApi.confirmPayment(bookingId, paymentIntentId),
     onSuccess: async () => {
-      // toast.success("Payment confirmed"); // Optional, maybe redundant with other toasts
       await queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      // slots might not change status but good to invalidate
       await queryClient.invalidateQueries({ queryKey: ["slots"] });
     },
     onError: (error: AxiosError<{ message?: string }>) => {

@@ -20,8 +20,7 @@ interface SubForm {
 export const SubscriptionsPage = () => {
   const vehicles = useVehicles();
   const subscriptions = useSubscriptions();
-  // Fetch available slots for referencing
-  const slots = useSlots(undefined, 1, 100); // fetch all slots
+  const slots = useSlots(undefined, 1, 100);
   const createSubscription = useCreateSubscription();
   const confirmSubscription = useConfirmSubscription();
 
@@ -33,7 +32,7 @@ export const SubscriptionsPage = () => {
     defaultValues: {
       planName: "Monthly Premium",
       monthlyAmount: 3000,
-      startsAt: new Date().toISOString().split("T")[0] || "", // Ensure string
+      startsAt: new Date().toISOString().split("T")[0] || "",
     },
   });
 
@@ -48,16 +47,10 @@ export const SubscriptionsPage = () => {
     createSubscription.mutate(
       {
         ...values,
-        monthlyAmount: 3000, // Enforce fixed amount
+        monthlyAmount: 3000,
       },
       {
         onSuccess: (data) => {
-          // data is { clientSecret, amount } returned from API
-          // Need to cast or ensure type safety.
-          // Since useMutation typings might be tricky without generic, let's assume valid.
-          // Actually, useCreateSubscription should infer type if api is typed.
-          // Checked api.create return type: Promise<{ clientSecret: string; amount: number }>
-          // So data has clientSecret.
           const res = data as unknown as {
             clientSecret: string;
             amount: number;

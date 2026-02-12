@@ -20,12 +20,11 @@ export const createSubscription = async (
     throw new AppError("Vehicle not found", 404);
   }
 
-  // Check if vehicle already has an active subscription
   const existing = await SubscriptionModel.findOne({
     vehicleId: req.body.vehicleId,
     status: "active",
     paymentStatus: "paid",
-    endsAt: { $gt: new Date() }, // Check if subscription is still valid
+    endsAt: { $gt: new Date() },
   }).exec();
 
   if (existing) {
@@ -92,14 +91,6 @@ export const confirmSubscriptionPayment = async (
   endsAt.setMonth(endsAt.getMonth() + 1);
 
   if (slotId) {
-    // If a specific slot was selected, mark it as reserved or associate strict usage?
-    // For now, let's just ensure it's not taken by another sub.
-    // Ideally we should mark it.
-    // Let's assume selecting a slot implies "Preferred" but logically we don't block it for 24/7 if not present?
-    // Or do we? "Select slot for month" implies LEASE.
-    // Let's mark it 'reserved' in SlotModel might block hourly users.
-    // Let's update status to 'reserved' and attach userId? Slot model doesn't have userId.
-    // We will just store it in subscription and use it in booking service.
   }
 
   const subscription = await SubscriptionModel.create({

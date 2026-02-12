@@ -62,11 +62,10 @@ export const SlotsPage = () => {
   const confirmPayment = useConfirmPayment();
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
 
-  // Payment Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentClientSecret, setPaymentClientSecret] = useState<string>("");
   const [pendingBookingAmount, setPendingBookingAmount] = useState<number>(0);
-  const [pendingBookingId, setPendingBookingId] = useState<string>(""); // technically used for reference or if we need to confirm manual step
+  const [pendingBookingId, setPendingBookingId] = useState<string>("");
   const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
 
   const {
@@ -150,7 +149,7 @@ export const SlotsPage = () => {
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              setPage(1); // Reset to first page on search
+              setPage(1);
             }}
           />
           <div>
@@ -199,14 +198,12 @@ export const SlotsPage = () => {
             onSubmit={handleSubmit((values) =>
               booking.mutate(values, {
                 onSuccess: (data) => {
-                  // If clientSecret is present, open payment modal
                   if (data.clientSecret && data.amount) {
                     setPaymentClientSecret(data.clientSecret);
                     setPendingBookingAmount(data.amount);
                     setPendingBookingId(data.id);
                     setIsPaymentModalOpen(true);
                   } else {
-                    // If no payment needed (e.g. 0 amount or future payment), just reset
                     resetBookingForm();
                   }
                 },
@@ -223,7 +220,7 @@ export const SlotsPage = () => {
               id="booking-slot"
               title="Slot"
               className="rounded-lg border px-3 py-2"
-              {...register("slotId", { required: false })} // Not required if auto-assign
+              {...register("slotId", { required: false })}
               defaultValue=""
             >
               <option value="">Auto-assign best slot</option>
