@@ -5,7 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { Loader } from "../components/loader";
-import { Layout } from "../components/layout";
+import { Layout } from "../layouts/Layout";
 import {
   useSessionBootstrap,
   useAuthBootstrapped,

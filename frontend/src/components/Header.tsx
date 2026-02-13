@@ -1,9 +1,7 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useAuthUser } from "../features/auth/auth.hooks";
-import { useLogout } from "../features/auth/auth.hooks";
+import { useAuthUser, useLogout } from "../features/auth/auth.hooks";
 import { useUnreadCount } from "../features/notifications/notification.hooks";
-import { useRealtime } from "../features/realtime/realtime.hook";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { useAppDispatch } from "../app/redux-hooks";
 import { setUser, setAuthBootstrapped } from "../features/auth/auth.slice";
@@ -13,8 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 const linkClass = ({ isActive }: { isActive: boolean }): string =>
   `rounded-md px-3 py-1.5 text-sm ${isActive ? "bg-slate-900 text-white" : "hover:bg-slate-100"}`;
 
-export const Layout = () => {
-  useRealtime();
+export const Header = () => {
   const user = useAuthUser();
   const unread = useUnreadCount();
   const logout = useLogout();
@@ -41,7 +38,7 @@ export const Layout = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <>
       <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <span className="text-xl font-black">ParkSphere</span>
@@ -122,10 +119,6 @@ export const Layout = () => {
         isProcessing={logout.isPending}
         variant="danger"
       />
-
-      <main className="mx-auto max-w-7xl px-4 py-6">
-        <Outlet />
-      </main>
-    </div>
+    </>
   );
 };
