@@ -5,17 +5,11 @@ import {
   useConfirmSubscription,
   useCreateSubscription,
   useSubscriptions,
+  useSubscriptionQr,
 } from "../features/subscriptions/subscription.hooks";
 import { useVehicles } from "../features/vehicles/vehicle.hooks";
 import { useSlots } from "../features/slots/slot.hooks";
-
-interface SubForm {
-  vehicleId: string;
-  planName: string;
-  monthlyAmount: number;
-  startsAt: string;
-  slotId?: string;
-}
+import type { SubscriptionFormValues } from "../types/form-types";
 
 export const SubscriptionsPage = () => {
   const vehicles = useVehicles();
@@ -27,23 +21,29 @@ export const SubscriptionsPage = () => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [amountToPay, setAmountToPay] = useState(0);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [viewQrSubscriptionId, setViewQrSubscriptionId] = useState<
+    string | null
+  >(null);
 
-  const { register, handleSubmit, watch, setValue } = useForm<SubForm>({
-    defaultValues: {
-      planName: "Monthly Premium",
-      monthlyAmount: 3000,
-      startsAt: new Date().toISOString().split("T")[0] || "",
-    },
-  });
+  const qrQuery = useSubscriptionQr(viewQrSubscriptionId ?? undefined);
+
+  const { register, handleSubmit, watch, setValue } =
+    useForm<SubscriptionFormValues>({
+      defaultValues: {
+        planName: "Monthly Premium",
+        monthlyAmount: 3000,
+        startsAt: new Date().toISOString().split("T")[0] || "",
+      },
+    });
 
   const selectedVehicleId = watch("vehicleId");
   const selectedVehicle = (vehicles.data ?? []).find(
     (v) => v.id === selectedVehicleId,
   );
 
-  const onSubmit: import("react-hook-form").SubmitHandler<SubForm> = (
-    values,
-  ) => {
+  const onSubmit: import("react-hook-form").SubmitHandler<
+    SubscriptionFormValues
+  > = (values) => {
     createSubscription.mutate(
       {
         ...values,
@@ -90,11 +90,13 @@ export const SubscriptionsPage = () => {
               {...register("vehicleId", { required: true })}
             >
               <option value="">Choose a vehicle...</option>
-              {(vehicles.data ?? []).map((vehicle) => (
-                <option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.plateNumber}
-                </option>
-              ))}
+              {(vehicles.data ?? [])
+                .filter((v) => !v.hasActiveSubscription)
+                .map((vehicle) => (
+                  <option key={vehicle.id} value={vehicle.id}>
+                    {vehicle.plateNumber}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -204,11 +206,16 @@ export const SubscriptionsPage = () => {
                   <p className="text-xs text-slate-500">
                     Vehicle: {item.vehicleNumber ?? "---"}
                   </p>
+                  {item.slotCode && (
+                    <p className="text-xs font-semibold text-indigo-600">
+                      Reserved Slot: {item.slotCode}
+                    </p>
+                  )}
                   <p className="text-xs text-slate-500">
                     Expires: {new Date(item.endsAt).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end gap-2">
                   <span
                     className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${
                       item.status === "active"
@@ -218,9 +225,17 @@ export const SubscriptionsPage = () => {
                   >
                     {item.status}
                   </span>
-                  <p className="mt-1 text-sm font-bold text-slate-900">
+                  <p className="text-sm font-bold text-slate-900">
                     INR {item.monthlyAmount}
                   </p>
+                  {item.status === "active" && (
+                    <button
+                      className="rounded-lg bg-indigo-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
+                      onClick={() => setViewQrSubscriptionId(item.id)}
+                    >
+                      View Access Pass
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -241,6 +256,39 @@ export const SubscriptionsPage = () => {
         onSuccess={onPaymentSuccess}
         onCancel={() => setIsPaymentModalOpen(false)}
       />
+
+      {/* QR Modal */}
+      {viewQrSubscriptionId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-center">Access Pass</h3>
+            <p className="text-center text-xs text-slate-500">
+              Scan this at the entry gate
+            </p>
+
+            <div className="mt-6 flex justify-center">
+              {qrQuery.isLoading ? (
+                <div className="h-48 w-48 animate-pulse rounded-xl bg-slate-200" />
+              ) : qrQuery.data?.imageDataUrl ? (
+                <img
+                  src={qrQuery.data.imageDataUrl}
+                  alt="Subscription QR"
+                  className="h-64 w-64 object-contain"
+                />
+              ) : (
+                <p className="text-red-500">Failed to load QR</p>
+              )}
+            </div>
+
+            <button
+              className="mt-6 w-full rounded-xl bg-slate-100 py-3 text-sm font-bold text-slate-700 hover:bg-slate-200"
+              onClick={() => setViewQrSubscriptionId(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

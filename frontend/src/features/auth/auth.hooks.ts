@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import type { AxiosError } from "axios";
 import toast from "react-hot-toast";
@@ -9,16 +9,20 @@ import { setAuthBootstrapped, setUser } from "./auth.slice";
 import { writeStoredAuthUser } from "./auth.storage";
 
 export const useAuthUser = () => useAppSelector((state) => state.auth.user);
-export const useAuthBootstrapped = () => useAppSelector((state) => state.auth.bootstrapped);
+export const useAuthBootstrapped = () =>
+  useAppSelector((state) => state.auth.bootstrapped);
 
 export const useSessionBootstrap = () => {
   const dispatch = useAppDispatch();
+  const bootstrapped = useAuthBootstrapped();
   const user = useAppSelector((state) => state.auth.user);
+
   const query = useQuery({
     queryKey: ["auth", "me"],
     queryFn: authApi.me,
     retry: false,
-    throwOnError: false
+    throwOnError: false,
+    enabled: !bootstrapped,
   });
 
   useEffect(() => {
@@ -29,7 +33,18 @@ export const useSessionBootstrap = () => {
     }
 
     const axiosError = query.error as AxiosError | null;
-    if (query.isError && axiosError?.response?.status === 401 && user) {
+
+    // Handle 401 Unauthorized or 403 Forbidden (Inactive/Suspended)
+    if (
+      query.isError &&
+      (axiosError?.response?.status === 401 ||
+        axiosError?.response?.status === 403) &&
+      user
+    ) {
+      if (axiosError?.response?.status === 403) {
+        toast.error("Your account has been suspended. Please contact support.");
+      }
+
       dispatch(setUser(null));
       writeStoredAuthUser(null);
       dispatch(setAuthBootstrapped(true));
@@ -47,14 +62,18 @@ export const useSessionBootstrap = () => {
 export const useLogin = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: authApi.login,
     onSuccess: (user) => {
+      // Sync both state managers
+      queryClient.setQueryData(["auth", "me"], user);
       dispatch(setUser(user));
       dispatch(setAuthBootstrapped(true));
       writeStoredAuthUser(user);
-      navigate("/dashboard");
+
+      navigate("/dashboard", { replace: true });
       toast.success("Logged in");
     },
     onError: (error: AxiosError<{ message?: string }>) => {
@@ -63,8 +82,15 @@ export const useLogin = () => {
         toast.error("Email not verified. Check inbox and verify first.");
         return;
       }
+      if (
+        message?.toLowerCase().includes("suspended") ||
+        message?.toLowerCase().includes("inactive")
+      ) {
+        toast.error("Your account has been suspended. Please contact support.");
+        return;
+      }
       toast.error(message ?? "Login failed");
-    }
+    },
   });
 };
 
@@ -77,41 +103,45 @@ export const useRegister = () => {
       toast.success("Account created. Verification email sent.");
       navigate("/login");
     },
-    onError: () => toast.error("Registration failed")
+    onError: () => toast.error("Registration failed"),
   });
 };
 
 export const useVerifyEmail = () =>
   useMutation({
-    mutationFn: authApi.verifyEmail
+    mutationFn: authApi.verifyEmail,
   });
 
 export const useResendVerification = () =>
   useMutation({
-    mutationFn: authApi.resendVerification
+    mutationFn: authApi.resendVerification,
   });
 
 export const useForgotPassword = () =>
   useMutation({
-    mutationFn: authApi.forgotPassword
+    mutationFn: authApi.forgotPassword,
   });
 
 export const useResetPassword = () =>
   useMutation({
-    mutationFn: authApi.resetPassword
+    mutationFn: authApi.resetPassword,
   });
 
 export const useLogout = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: authApi.logout,
-    onSuccess: () => {
+    onSettled: () => {
+      // Clear all state regardless of success
       dispatch(setUser(null));
       dispatch(setAuthBootstrapped(true));
       writeStoredAuthUser(null);
+      queryClient.clear();
       navigate("/login");
-    }
+      toast.success("Logged out successfully");
+    },
   });
 };

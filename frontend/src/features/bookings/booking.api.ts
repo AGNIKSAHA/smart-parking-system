@@ -4,27 +4,14 @@ import type {
   Booking,
   SecurityScanEvent,
 } from "../../types/domain";
+import type { BookingFormValues, BookingResult } from "../../types/form-types";
 
 export const bookingApi = {
-  async create(payload: {
-    slotId: string;
-    vehicleId: string;
-    startsAt: string;
-    durationMinutes: number;
-  }): Promise<{
-    id: string;
-    qrImageDataUrl: string;
-    clientSecret?: string;
-    amount: number;
-  }> {
-    const res = await http.post<
-      ApiResponse<{
-        id: string;
-        qrImageDataUrl: string;
-        clientSecret?: string;
-        amount: number;
-      }>
-    >("/bookings", payload);
+  async create(payload: BookingFormValues): Promise<BookingResult> {
+    const res = await http.post<ApiResponse<BookingResult>>(
+      "/bookings",
+      payload,
+    );
     return res.data.data;
   },
   async listMine(

@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Types, FilterQuery } from "mongoose";
 import Stripe from "stripe";
 import { BookingModel } from "../../db/models/booking.model.js";
 import { LedgerModel } from "../../db/models/ledger.model.js";
@@ -227,11 +227,23 @@ export const bookingService = {
   async scan(input: { token: string; action: "entry" | "exit" }) {
     const payload = await verifyQr(input.token);
 
+    if ("subscriptionId" in payload) {
+      return await this.handleSubscriptionScan(
+        payload.userId,
+        input.action,
+        payload.subscriptionId,
+      );
+    }
+
     if ("email" in payload) {
       return await this.handleSubscriptionScan(payload.userId, input.action);
     }
 
-    const booking = await BookingModel.findById(payload.bookingId).exec();
+    // Default to booking
+    const bookingPayload = payload as { bookingId: string };
+    const booking = await BookingModel.findById(
+      bookingPayload.bookingId,
+    ).exec();
 
     if (!booking) {
       throw new AppError("Invalid or expired booking", 404);
@@ -444,12 +456,22 @@ export const bookingService = {
       .exec();
   },
 
-  async handleSubscriptionScan(userId: string, action: "entry" | "exit") {
-    const subscription = await SubscriptionModel.findOne({
+  async handleSubscriptionScan(
+    userId: string,
+    action: "entry" | "exit",
+    subscriptionId?: string,
+  ) {
+    const query: FilterQuery<unknown> = {
       userId,
       status: "active",
       endsAt: { $gt: new Date() },
-    }).exec();
+    };
+
+    if (subscriptionId) {
+      query._id = subscriptionId;
+    }
+
+    const subscription = await SubscriptionModel.findOne(query).exec();
 
     if (!subscription) {
       throw new AppError("No active subscription found for this user", 403);

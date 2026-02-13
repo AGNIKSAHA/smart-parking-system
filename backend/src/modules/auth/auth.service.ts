@@ -4,7 +4,11 @@ import { env } from "../../common/config/env.js";
 import { UserModel } from "../../db/models/user.model.js";
 import { RefreshTokenModel } from "../../db/models/refresh-token.model.js";
 import { AppError } from "../../common/middlewares/error.middleware.js";
-import { signAccess, signRefresh, verifyRefresh } from "../../common/utils/jwt.js";
+import {
+  signAccess,
+  signRefresh,
+  verifyRefresh,
+} from "../../common/utils/jwt.js";
 import type { UserRole } from "../../common/types/auth.js";
 import { generateToken, sha256 } from "../../common/utils/token.js";
 import { sendEmail } from "../notifications/notify.js";
@@ -16,7 +20,7 @@ const buildResetPasswordUrl = (token: string): string =>
 
 const issueEmailVerification = async (
   userId: string,
-  email: string
+  email: string,
 ): Promise<{ token: string; verificationUrl: string }> => {
   const token = generateToken();
   const tokenHash = sha256(token);
@@ -27,9 +31,9 @@ const issueEmailVerification = async (
     {
       $set: {
         emailVerificationTokenHash: tokenHash,
-        emailVerificationExpiresAt: expiresAt
-      }
-    }
+        emailVerificationExpiresAt: expiresAt,
+      },
+    },
   ).exec();
 
   const verificationUrl = buildVerificationUrl(token);
@@ -37,7 +41,7 @@ const issueEmailVerification = async (
     await sendEmail(
       email,
       "Verify your Smart Parking account",
-      `Click this link to verify your account: ${verificationUrl}\n\nThis link expires in 24 hours.`
+      `Click this link to verify your account: ${verificationUrl}\n\nThis link expires in 24 hours.`,
     );
   } catch {
     if (env.NODE_ENV === "production") {
@@ -50,7 +54,7 @@ const issueEmailVerification = async (
 
 const issuePasswordReset = async (
   userId: string,
-  email: string
+  email: string,
 ): Promise<{ token: string; resetUrl: string }> => {
   const token = generateToken();
   const tokenHash = sha256(token);
@@ -61,9 +65,9 @@ const issuePasswordReset = async (
     {
       $set: {
         passwordResetTokenHash: tokenHash,
-        passwordResetExpiresAt: expiresAt
-      }
-    }
+        passwordResetExpiresAt: expiresAt,
+      },
+    },
   ).exec();
 
   const resetUrl = buildResetPasswordUrl(token);
@@ -71,7 +75,7 @@ const issuePasswordReset = async (
     await sendEmail(
       email,
       "Reset your Smart Parking password",
-      `Click this link to reset your password: ${resetUrl}\n\nThis link expires in 1 hour.`
+      `Click this link to reset your password: ${resetUrl}\n\nThis link expires in 1 hour.`,
     );
   } catch {
     if (env.NODE_ENV === "production") {
@@ -83,7 +87,12 @@ const issuePasswordReset = async (
 };
 
 export const authService = {
-  async register(input: { name: string; email: string; password: string; role: "admin" | "security" | "user" }) {
+  async register(input: {
+    name: string;
+    email: string;
+    password: string;
+    role: "admin" | "security" | "user";
+  }) {
     const exists = await UserModel.findOne({ email: input.email }).exec();
     if (exists) {
       throw new AppError("Email already exists", 409);
@@ -94,10 +103,13 @@ export const authService = {
       name: input.name,
       email: input.email,
       passwordHash,
-      role: input.role
+      role: input.role,
     });
 
-    const verification = await issueEmailVerification(user._id.toString(), user.email);
+    const verification = await issueEmailVerification(
+      user._id.toString(),
+      user.email,
+    );
 
     return {
       id: user._id.toString(),
@@ -105,7 +117,9 @@ export const authService = {
       email: user.email,
       role: user.role,
       isEmailVerified: false,
-      ...(env.NODE_ENV === "development" ? { verificationUrl: verification.verificationUrl } : {})
+      ...(env.NODE_ENV === "development"
+        ? { verificationUrl: verification.verificationUrl }
+        : {}),
     };
   },
 
@@ -119,26 +133,46 @@ export const authService = {
     if (!valid) {
       throw new AppError("Invalid credentials", 401);
     }
+    if (!user.isActive) {
+      throw new AppError("Your account has been suspended", 403);
+    }
     if (!user.isEmailVerified) {
-      throw new AppError("Email not verified. Please verify before login.", 403);
+      throw new AppError(
+        "Email not verified. Please verify before login.",
+        403,
+      );
     }
 
     const tokenId = randomUUID();
 
     const role = user.role as UserRole;
-    const accessToken = signAccess({ sub: user._id.toString(), role, email: user.email });
-    const refreshToken = signRefresh({ sub: user._id.toString(), role, email: user.email, tokenId });
+    const accessToken = signAccess({
+      sub: user._id.toString(),
+      role,
+      email: user.email,
+    });
+    const refreshToken = signRefresh({
+      sub: user._id.toString(),
+      role,
+      email: user.email,
+      tokenId,
+    });
 
     await RefreshTokenModel.create({
       userId: user._id,
       tokenId,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
     return {
       accessToken,
       refreshToken,
-      user: { id: user._id.toString(), email: user.email, role, name: user.name }
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        role,
+        name: user.name,
+      },
     };
   },
 
@@ -147,7 +181,7 @@ export const authService = {
     const tokenRow = await RefreshTokenModel.findOne({
       tokenId: payload.tokenId,
       revokedAt: { $exists: false },
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     }).exec();
 
     if (!tokenRow) {
@@ -155,13 +189,28 @@ export const authService = {
     }
 
     const user = await UserModel.findById(payload.sub).exec();
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new AppError("Unauthorized", 401);
+    }
+    if (!user.isActive) {
+      throw new AppError("Your account has been suspended", 403);
     }
 
     const role = user.role as UserRole;
-    const accessToken = signAccess({ sub: user._id.toString(), role, email: user.email });
-    return { accessToken, user: { id: user._id.toString(), email: user.email, role, name: user.name } };
+    const accessToken = signAccess({
+      sub: user._id.toString(),
+      role,
+      email: user.email,
+    });
+    return {
+      accessToken,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        role,
+        name: user.name,
+      },
+    };
   },
 
   async logout(refreshToken: string | undefined) {
@@ -171,7 +220,10 @@ export const authService = {
 
     try {
       const payload = verifyRefresh(refreshToken);
-      await RefreshTokenModel.updateOne({ tokenId: payload.tokenId }, { $set: { revokedAt: new Date() } }).exec();
+      await RefreshTokenModel.updateOne(
+        { tokenId: payload.tokenId },
+        { $set: { revokedAt: new Date() } },
+      ).exec();
     } catch {
       return;
     }
@@ -182,7 +234,7 @@ export const authService = {
     const user = await UserModel.findOne({
       emailVerificationTokenHash: tokenHash,
       emailVerificationExpiresAt: { $gt: new Date() },
-      isEmailVerified: false
+      isEmailVerified: false,
     }).exec();
 
     if (!user) {
@@ -195,7 +247,9 @@ export const authService = {
     await user.save();
   },
 
-  async resendVerification(email: string): Promise<{ verificationUrl?: string }> {
+  async resendVerification(
+    email: string,
+  ): Promise<{ verificationUrl?: string }> {
     const user = await UserModel.findOne({ email }).exec();
     if (!user) {
       return {};
@@ -204,8 +258,13 @@ export const authService = {
       return {};
     }
 
-    const verification = await issueEmailVerification(user._id.toString(), user.email);
-    return env.NODE_ENV === "development" ? { verificationUrl: verification.verificationUrl } : {};
+    const verification = await issueEmailVerification(
+      user._id.toString(),
+      user.email,
+    );
+    return env.NODE_ENV === "development"
+      ? { verificationUrl: verification.verificationUrl }
+      : {};
   },
 
   async forgotPassword(email: string): Promise<{ resetUrl?: string }> {
@@ -218,13 +277,16 @@ export const authService = {
     return env.NODE_ENV === "development" ? { resetUrl: reset.resetUrl } : {};
   },
 
-  async resetPassword(input: { token: string; password: string }): Promise<void> {
+  async resetPassword(input: {
+    token: string;
+    password: string;
+  }): Promise<void> {
     const tokenHash = sha256(input.token);
     const user = await UserModel.findOne({
       passwordResetTokenHash: tokenHash,
       passwordResetExpiresAt: { $gt: new Date() },
       isActive: true,
-      isEmailVerified: true
+      isEmailVerified: true,
     }).exec();
 
     if (!user) {
@@ -235,5 +297,5 @@ export const authService = {
     user.passwordResetTokenHash = null;
     user.passwordResetExpiresAt = null;
     await user.save();
-  }
+  },
 };

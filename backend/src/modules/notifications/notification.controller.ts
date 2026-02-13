@@ -6,10 +6,19 @@ export const listNotifications = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const items = await NotificationModel.find({ userId: req.user?.id })
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .exec();
+  const page = Number(req.query.page ?? 1);
+  const limit = Number(req.query.limit ?? 20);
+  const skip = (page - 1) * limit;
+
+  const [items, total] = await Promise.all([
+    NotificationModel.find({ userId: req.user?.id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    NotificationModel.countDocuments({ userId: req.user?.id }).exec(),
+  ]);
+
   send(
     res,
     200,
@@ -22,6 +31,12 @@ export const listNotifications = async (
       isRead: item.isRead,
       createdAt: item.createdAt,
     })),
+    {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    },
   );
 };
 

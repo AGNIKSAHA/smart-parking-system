@@ -3,19 +3,25 @@ import type { AxiosError } from "axios";
 import toast from "react-hot-toast";
 import { queryClient } from "../../app/query-client";
 import { slotApi } from "./slot.api";
+import type { CreateSlotFormValues } from "../../types/form-types";
+import type { Slot } from "../../types/domain";
+import { useAppSelector } from "../../app/redux-hooks";
 
 export const useSlots = (
   vehicleType?: string,
   page = 1,
   limit = 12,
-  lotName?: string,
-) =>
-  useQuery({
-    queryKey: ["slots", vehicleType, page, limit, lotName],
-    queryFn: () => slotApi.list(vehicleType, page, limit, lotName),
+  search?: string,
+) => {
+  const user = useAppSelector((state) => state.auth.user);
+  return useQuery({
+    queryKey: ["slots", vehicleType, page, limit, search],
+    queryFn: () => slotApi.list(vehicleType, page, limit, search),
     refetchInterval: 500,
     refetchIntervalInBackground: true,
+    enabled: !!user,
   });
+};
 
 export const useCreateSlot = () =>
   useMutation({
@@ -37,7 +43,7 @@ export const useUpdateSlot = () =>
       payload,
     }: {
       slotId: string;
-      payload: Parameters<typeof slotApi.update>[1];
+      payload: Partial<CreateSlotFormValues> & { status?: Slot["status"] };
     }) => slotApi.update(slotId, payload),
     onSuccess: async () => {
       toast.success("Slot updated");

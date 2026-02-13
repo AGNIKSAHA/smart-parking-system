@@ -58,39 +58,50 @@ export const DashboardPage = () => {
           </div>
 
           <div className="space-y-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Full Name
-              </p>
-              <p className="font-medium text-slate-900">
-                {profile.data?.name || "---"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Email Address
-              </p>
-              <p className="font-medium text-slate-900">
-                {profile.data?.email || "---"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Phone
-              </p>
-              <p className="font-medium text-slate-900">
-                {profile.data?.phoneNumber || "---"}
-              </p>
-            </div>
-            {profile.data?.address && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Address
-                </p>
-                <p className="font-medium text-slate-900">
-                  {profile.data?.address}
-                </p>
-              </div>
+            {profile.isPending ? (
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-2 w-16 animate-pulse rounded bg-slate-100" />
+                  <div className="h-4 w-1/2 animate-pulse rounded bg-slate-100" />
+                </div>
+              ))
+            ) : (
+              <>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Full Name
+                  </p>
+                  <p className="font-medium text-slate-900">
+                    {profile.data?.name || "---"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Email Address
+                  </p>
+                  <p className="font-medium text-slate-900">
+                    {profile.data?.email || "---"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Phone
+                  </p>
+                  <p className="font-medium text-slate-900">
+                    {profile.data?.phoneNumber || "---"}
+                  </p>
+                </div>
+                {profile.data?.address && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Address
+                    </p>
+                    <p className="font-medium text-slate-900">
+                      {profile.data?.address}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
@@ -106,7 +117,16 @@ export const DashboardPage = () => {
               </span>
             </div>
 
-            {vehicles.data && vehicles.data.length > 0 ? (
+            {vehicles.isPending ? (
+              <div className="space-y-3">
+                {[...Array(2)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-12 animate-pulse rounded-xl bg-slate-100"
+                  />
+                ))}
+              </div>
+            ) : vehicles.data && vehicles.data.length > 0 ? (
               <div className="divide-y divide-slate-100">
                 {vehicles.data.map((vehicle) => (
                   <div key={vehicle.id} className="py-3 first:pt-0 last:pb-0">

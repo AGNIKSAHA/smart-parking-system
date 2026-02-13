@@ -4,7 +4,7 @@ import { env } from "../utils/env";
 export const http = axios.create({
   baseURL: env.apiUrl,
   withCredentials: true,
-  timeout: 15000
+  timeout: 15000,
 });
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
@@ -23,7 +23,8 @@ http.interceptors.response.use(
     const skipRefresh =
       requestUrl.includes("/auth/login") ||
       requestUrl.includes("/auth/register") ||
-      requestUrl.includes("/auth/refresh");
+      requestUrl.includes("/auth/refresh") ||
+      requestUrl.includes("/auth/logout");
 
     if (status !== 401 || !config || config._retry || skipRefresh) {
       return Promise.reject(error);
@@ -44,5 +45,5 @@ http.interceptors.response.use(
       refreshPromise = null;
       return Promise.reject(refreshError);
     }
-  }
+  },
 );

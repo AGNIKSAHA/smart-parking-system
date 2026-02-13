@@ -54,26 +54,26 @@ export const listSlots = async (req: Request, res: Response): Promise<void> => {
   const limit = Number(req.query.limit ?? 20);
   const status =
     typeof req.query.status === "string" ? req.query.status : undefined;
-  const lotName =
-    typeof req.query.lotName === "string" ? req.query.lotName : undefined;
+  const search =
+    typeof req.query.search === "string" ? req.query.search : undefined;
   const vehicleType =
     typeof req.query.vehicleType === "string"
       ? req.query.vehicleType
       : undefined;
 
-  const query: {
-    status?: string;
-    vehicleType?: string;
-    lotName?: { $regex: string; $options: string };
-  } = {};
+  const query: Record<string, unknown> = {};
+
   if (status) {
     query.status = status;
   }
   if (vehicleType) {
     query.vehicleType = vehicleType;
   }
-  if (lotName) {
-    query.lotName = { $regex: lotName, $options: "i" };
+  if (search) {
+    query.$or = [
+      { lotName: { $regex: search, $options: "i" } },
+      { code: { $regex: search, $options: "i" } },
+    ];
   }
 
   const skip = (page - 1) * limit;

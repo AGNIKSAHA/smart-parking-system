@@ -4,6 +4,7 @@ import type { ApiResponse } from "../../types/domain";
 export interface SubscriptionItem {
   id: string;
   vehicleNumber?: string;
+  slotCode?: string;
   planName: string;
   monthlyAmount: number;
   startsAt: string;
@@ -37,5 +38,12 @@ export const subscriptionApi = {
 
   async cancel(subscriptionId: string): Promise<void> {
     await http.post(`/subscriptions/${subscriptionId}/cancel`);
+  },
+
+  async getQr(subscriptionId: string): Promise<{ imageDataUrl: string }> {
+    const res = await http.get<{ data: { imageDataUrl: string } }>(
+      `/subscriptions/${subscriptionId}/qr`,
+    );
+    return res.data.data;
   },
 };

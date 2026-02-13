@@ -12,6 +12,7 @@ import {
   createSubscription,
   mySubscriptions,
   cancelSubscription,
+  getSubscriptionQr,
 } from "./subscription.controller.js";
 import { createSubscriptionSchema } from "./subscription.validation.js";
 
@@ -37,6 +38,12 @@ subscriptionRouter.get(
   "/me",
   requireRolePermissions("user", "admin"),
   catchAsync(mySubscriptions),
+);
+
+subscriptionRouter.get(
+  "/:subscriptionId/qr",
+  requireRolePermissions("user", "admin"),
+  catchAsync(getSubscriptionQr),
 );
 
 subscriptionRouter.post(

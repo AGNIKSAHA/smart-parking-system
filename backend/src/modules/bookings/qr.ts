@@ -16,11 +16,18 @@ interface UserQrPayload {
   issuedAt: number;
 }
 
+interface SubscriptionQrPayload {
+  userId: string;
+  subscriptionId: string;
+  vehicleId: string;
+  issuedAt: number;
+}
+
 const sign = (payload: string): string =>
   createHmac("sha256", env.BOOKING_QR_SECRET).update(payload).digest("hex");
 
 export const createQr = async (
-  payload: BookingQrPayload | UserQrPayload,
+  payload: BookingQrPayload | UserQrPayload | SubscriptionQrPayload,
 ): Promise<{ token: string; imageDataUrl: string }> => {
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = sign(encoded);
@@ -29,7 +36,9 @@ export const createQr = async (
   return { token, imageDataUrl };
 };
 
-export const verifyQr = (token: string): BookingQrPayload | UserQrPayload => {
+export const verifyQr = (
+  token: string,
+): BookingQrPayload | UserQrPayload | SubscriptionQrPayload => {
   const parts = token.split(".");
   if (parts.length !== 2) {
     throw new Error("Malformed qr token");

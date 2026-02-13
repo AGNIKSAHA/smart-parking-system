@@ -12,11 +12,24 @@ export const RequireAuth = () => {
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
+export const GuestGate = () => {
+  const bootstrapped = useAuthBootstrapped();
+  const user = useAuthUser();
+  if (!bootstrapped) {
+    return <Loader label="Restoring session..." />;
+  }
+  return user ? <Navigate to="/dashboard" replace /> : <Outlet />;
+};
+
 export const RequireRole = ({ roles }: { roles: UserRole[] }) => {
   const user = useAuthUser();
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  return roles.includes(user.role) ? <Outlet /> : <Navigate to="/dashboard" replace />;
+  return roles.includes(user.role) ? (
+    <Outlet />
+  ) : (
+    <Navigate to="/dashboard" replace />
+  );
 };

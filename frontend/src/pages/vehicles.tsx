@@ -5,15 +5,13 @@ import {
   useDeleteVehicle,
   useVehicles,
 } from "../features/vehicles/vehicle.hooks";
-import type { VehiclePayload } from "../features/vehicles/vehicle.api";
 import type { Vehicle } from "../types/domain";
+import type { VehicleFormValues } from "../types/form-types";
 import { ConfirmationModal } from "../components/ConfirmationModal";
-
-interface VehicleForm extends VehiclePayload {}
 
 interface VehicleFormFieldsProps {
   idPrefix: string;
-  register: UseFormRegister<VehicleForm>;
+  register: UseFormRegister<VehicleFormValues>;
 }
 
 const VehicleFormFields = ({ idPrefix, register }: VehicleFormFieldsProps) => (
@@ -95,7 +93,7 @@ const VehicleFormFields = ({ idPrefix, register }: VehicleFormFieldsProps) => (
 );
 
 export const VehiclesPage = () => {
-  const { register, handleSubmit } = useForm<VehicleForm>({
+  const { register, handleSubmit } = useForm<VehicleFormValues>({
     defaultValues: { vehicleType: "car" },
   });
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);

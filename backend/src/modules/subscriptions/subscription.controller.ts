@@ -5,6 +5,7 @@ import { SubscriptionModel } from "../../db/models/subscription.model.js";
 import { VehicleModel } from "../../db/models/vehicle.model.js";
 import { SlotModel } from "../../db/models/slot.model.js";
 import { stripe } from "../payments/stripe.js";
+import { createQr } from "../bookings/qr.js";
 
 const SUBSCRIPTION_FEE = 3000;
 
@@ -91,6 +92,9 @@ export const confirmSubscriptionPayment = async (
   endsAt.setMonth(endsAt.getMonth() + 1);
 
   if (slotId) {
+    await SlotModel.findByIdAndUpdate(slotId, {
+      status: "reserved",
+    }).exec();
   }
 
   const subscription = await SubscriptionModel.create({
@@ -119,6 +123,7 @@ export const mySubscriptions = async (
 ): Promise<void> => {
   const items = await SubscriptionModel.find({ userId: req.user?.id })
     .populate("vehicleId", "plateNumber")
+    .populate("slotId", "code")
     .sort({ createdAt: -1 })
     .exec();
 
@@ -133,9 +138,16 @@ export const mySubscriptions = async (
           ? (vehicleId.plateNumber as string)
           : "-";
 
+      const slotId = item.slotId;
+      const slotCode =
+        typeof slotId === "object" && slotId && "code" in slotId
+          ? (slotId.code as string)
+          : undefined;
+
       return {
         id: item._id.toString(),
         vehicleNumber,
+        slotCode,
         planName: item.planName,
         monthlyAmount: item.monthlyAmount,
         startsAt: item.startsAt,
@@ -168,8 +180,42 @@ export const cancelSubscription = async (
   subscription.status = "cancelled";
   await subscription.save();
 
+  if (subscription.slotId) {
+    await SlotModel.findByIdAndUpdate(subscription.slotId, {
+      status: "available",
+    }).exec();
+  }
+
   send(res, 200, "Subscription cancelled", {
     id: subscription._id.toString(),
     status: subscription.status,
   });
+};
+
+export const getSubscriptionQr = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const subscriptionId = req.params.subscriptionId;
+  const subscription = await SubscriptionModel.findOne({
+    _id: subscriptionId,
+    userId: req.user?.id,
+  }).exec();
+
+  if (!subscription) {
+    throw new AppError("Subscription not found", 404);
+  }
+
+  if (subscription.status !== "active") {
+    throw new AppError("Subscription is not active", 400);
+  }
+
+  const { imageDataUrl } = await createQr({
+    userId: req.user?.id ?? "",
+    subscriptionId: subscription._id.toString(),
+    vehicleId: subscription.vehicleId.toString(),
+    issuedAt: Date.now(),
+  });
+
+  send(res, 200, "Subscription QR generated", { imageDataUrl });
 };

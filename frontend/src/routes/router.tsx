@@ -1,9 +1,16 @@
 import { lazy, Suspense } from "react";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
 import { Loader } from "../components/loader";
 import { Layout } from "../components/layout";
-import { useSessionBootstrap } from "../features/auth/auth.hooks";
-import { RequireAuth, RequireRole } from "./guards";
+import {
+  useSessionBootstrap,
+  useAuthBootstrapped,
+} from "../features/auth/auth.hooks";
+import { RequireAuth, RequireRole, GuestGate } from "./guards";
 
 const AdminAnalyticsPage = lazy(() =>
   import("../pages/admin-analytics").then((m) => ({
@@ -81,35 +88,36 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: (
-          <SuspenseWrapper>
-            <DashboardPage />
-          </SuspenseWrapper>
-        ),
+        element: <Navigate to="/dashboard" replace />,
       },
       {
-        path: "login",
-        element: (
-          <SuspenseWrapper>
-            <LoginPage />
-          </SuspenseWrapper>
-        ),
-      },
-      {
-        path: "register",
-        element: (
-          <SuspenseWrapper>
-            <RegisterPage />
-          </SuspenseWrapper>
-        ),
-      },
-      {
-        path: "forgot-password",
-        element: (
-          <SuspenseWrapper>
-            <ForgotPasswordPage />
-          </SuspenseWrapper>
-        ),
+        element: <GuestGate />,
+        children: [
+          {
+            path: "login",
+            element: (
+              <SuspenseWrapper>
+                <LoginPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "register",
+            element: (
+              <SuspenseWrapper>
+                <RegisterPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "forgot-password",
+            element: (
+              <SuspenseWrapper>
+                <ForgotPasswordPage />
+              </SuspenseWrapper>
+            ),
+          },
+        ],
       },
       {
         path: "reset-password",
@@ -240,9 +248,10 @@ const router = createBrowserRouter([
 ]);
 
 export const AppRouter = () => {
-  const session = useSessionBootstrap();
+  useSessionBootstrap();
+  const bootstrapped = useAuthBootstrapped();
 
-  if (session.isLoading) {
+  if (!bootstrapped) {
     return <Loader label="Initializing..." />;
   }
 

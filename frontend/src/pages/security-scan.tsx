@@ -1,19 +1,15 @@
 import { useForm } from "react-hook-form";
 import { useScanBooking } from "../features/bookings/booking.hooks";
 import toast from "react-hot-toast";
-
-interface ScanForm {
-  token: string;
-  action: "entry" | "exit";
-}
+import type { ScanFormValues } from "../types/form-types";
 
 export const SecurityScanPage = () => {
-  const { register, handleSubmit, reset } = useForm<ScanForm>({
+  const { register, handleSubmit, reset } = useForm<ScanFormValues>({
     defaultValues: { action: "entry" },
   });
   const scan = useScanBooking();
 
-  const onScan = (values: ScanForm) => {
+  const onScan = (values: ScanFormValues) => {
     scan.mutate(values, {
       onSuccess: () => {
         toast.success(

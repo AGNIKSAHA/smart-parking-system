@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { queryClient } from "../../app/query-client";
 import { profileApi } from "./profile.api";
+import { useAppSelector } from "../../app/redux-hooks";
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (
@@ -20,11 +21,14 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-export const useMyProfile = () =>
-  useQuery({
+export const useMyProfile = () => {
+  const user = useAppSelector((state) => state.auth.user);
+  return useQuery({
     queryKey: ["profile", "me"],
     queryFn: profileApi.myProfile,
+    enabled: !!user,
   });
+};
 
 export const useUpdateMyProfile = () =>
   useMutation({
@@ -39,11 +43,14 @@ export const useUpdateMyProfile = () =>
     },
   });
 
-export const useAdminProfiles = (role?: "user" | "security") =>
-  useQuery({
+export const useAdminProfiles = (role?: "user" | "security") => {
+  const user = useAppSelector((state) => state.auth.user);
+  return useQuery({
     queryKey: ["profiles", "admin", role],
     queryFn: () => profileApi.listAdminProfiles(role),
+    enabled: !!user,
   });
+};
 
 export const useToggleUserStatus = () =>
   useMutation({

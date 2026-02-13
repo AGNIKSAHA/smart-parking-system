@@ -4,6 +4,7 @@ import { AppError } from "../../common/middlewares/error.middleware.js";
 import { UserModel } from "../../db/models/user.model.js";
 import { adminProfileListQuerySchema } from "./profile.validation.js";
 import { createQr } from "../bookings/qr.js";
+import { sendEmail } from "../notifications/notify.js";
 
 export const getMyProfile = async (
   req: Request,
@@ -135,6 +136,21 @@ export const toggleUserStatus = async (
 
   if (!user) {
     throw new AppError("User not found", 404);
+  }
+
+  if (user.email) {
+    try {
+      const subject = isActive
+        ? "Account Reactivated - Smart Parking System"
+        : "Account Suspended - Smart Parking System";
+      const message = isActive
+        ? `Your account has been reactivated by the administrator. You can now login and use the services.`
+        : `Your account has been suspended by the administrator. Please contact support for more information.`;
+
+      await sendEmail(user.email, subject, message);
+    } catch (err) {
+      console.error("Failed to send status update email", err);
+    }
   }
 
   send(res, 200, `User ${isActive ? "activated" : "suspended"}`, {

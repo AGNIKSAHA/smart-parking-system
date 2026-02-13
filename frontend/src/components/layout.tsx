@@ -1,8 +1,14 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useAuthUser } from "../features/auth/auth.hooks";
 import { useLogout } from "../features/auth/auth.hooks";
 import { useUnreadCount } from "../features/notifications/notification.hooks";
 import { useRealtime } from "../features/realtime/realtime.hook";
+import { ConfirmationModal } from "./ConfirmationModal";
+import { useAppDispatch } from "../app/redux-hooks";
+import { setUser, setAuthBootstrapped } from "../features/auth/auth.slice";
+import { writeStoredAuthUser } from "../features/auth/auth.storage";
+import { useQueryClient } from "@tanstack/react-query";
 
 const linkClass = ({ isActive }: { isActive: boolean }): string =>
   `rounded-md px-3 py-1.5 text-sm ${isActive ? "bg-slate-900 text-white" : "hover:bg-slate-100"}`;
@@ -12,6 +18,27 @@ export const Layout = () => {
   const user = useAuthUser();
   const unread = useUnreadCount();
   const logout = useLogout();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const handleLogout = () => {
+    // Clear state IMMEDIATELY for instant UI feedback
+    dispatch(setUser(null));
+    dispatch(setAuthBootstrapped(true));
+    writeStoredAuthUser(null);
+    queryClient.clear();
+    setIsLogoutModalOpen(false);
+
+    // Then trigger background logout
+    logout.mutate(undefined, {
+      onSettled: () => {
+        navigate("/login", { replace: true });
+      },
+    });
+  };
 
   return (
     <div className="min-h-screen">
@@ -65,7 +92,7 @@ export const Layout = () => {
                 </NavLink>
                 <button
                   className="rounded-md bg-rose-600 px-3 py-1.5 text-sm text-white"
-                  onClick={() => logout.mutate()}
+                  onClick={() => setIsLogoutModalOpen(true)}
                   type="button"
                 >
                   Logout
@@ -77,13 +104,25 @@ export const Layout = () => {
                   Login
                 </NavLink>
                 <NavLink to="/register" className={linkClass}>
-                  Register
+                  Signup
                 </NavLink>
               </>
             )}
           </nav>
         </div>
       </header>
+
+      <ConfirmationModal
+        isOpen={isLogoutModalOpen}
+        title="Confirm Logout"
+        message="Are you sure you want to log out of your account?"
+        confirmLabel="Logout"
+        onConfirm={handleLogout}
+        onCancel={() => setIsLogoutModalOpen(false)}
+        isProcessing={logout.isPending}
+        variant="danger"
+      />
+
       <main className="mx-auto max-w-7xl px-4 py-6">
         <Outlet />
       </main>

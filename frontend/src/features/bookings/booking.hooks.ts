@@ -3,18 +3,25 @@ import type { AxiosError } from "axios";
 import toast from "react-hot-toast";
 import { queryClient } from "../../app/query-client";
 import { bookingApi } from "./booking.api";
+import { useAppSelector } from "../../app/redux-hooks";
 
-export const useBookings = (page = 1, limit = 10) =>
-  useQuery({
+export const useBookings = (page = 1, limit = 10) => {
+  const user = useAppSelector((state) => state.auth.user);
+  return useQuery({
     queryKey: ["bookings", page, limit],
     queryFn: () => bookingApi.listMine(page, limit),
+    enabled: !!user,
   });
-export const useSecurityScanEvents = (enabled: boolean) =>
-  useQuery({
+};
+
+export const useSecurityScanEvents = (enabled: boolean) => {
+  const user = useAppSelector((state) => state.auth.user);
+  return useQuery({
     queryKey: ["bookings", "scans"],
     queryFn: bookingApi.securityScans,
-    enabled,
+    enabled: enabled && !!user,
   });
+};
 
 export const useCancelBooking = () =>
   useMutation({

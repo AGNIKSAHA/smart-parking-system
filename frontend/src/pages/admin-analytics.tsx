@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { http } from "../api/http";
 import type { ApiResponse } from "../types/domain";
+import type { AnalyticsPayload } from "../types/form-types";
 import {
   BarChart,
   Bar,
@@ -11,12 +12,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-
-interface AnalyticsPayload {
-  occupancyRate: number;
-  revenue: number;
-  peakHours: Array<{ hour: number; count: number }>;
-}
 
 export const AdminAnalyticsPage = () => {
   const analytics = useQuery({
