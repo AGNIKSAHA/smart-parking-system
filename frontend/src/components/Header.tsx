@@ -22,7 +22,6 @@ export const Header = () => {
   const queryClient = useQueryClient();
 
   const handleLogout = () => {
-    // Clear state IMMEDIATELY for instant UI feedback
     dispatch(setUser(null));
     dispatch(setAuthBootstrapped(true));
     writeStoredAuthUser(null);
